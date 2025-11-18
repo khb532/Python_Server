@@ -102,6 +102,22 @@ async def get_all_data():
     }
 
 
+@app.post("/api/query")
+async def query_data(id: int):
+    """
+    POST 요청으로 ID를 받아 데이터 조회
+    클라이언트에서 POST로 id를 보내면 해당 데이터를 JSON으로 반환
+    """
+    if id not in database:
+        raise HTTPException(status_code=404, detail=f"Data with id {id} not found")
+
+    return {
+        "success": True,
+        "id": id,
+        "data": database[id]
+    }
+
+
 @app.post("/api/data")
 async def add_data(id: int, data: str):
     """
