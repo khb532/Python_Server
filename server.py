@@ -1,11 +1,25 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
+import logging
 
 app = FastAPI(title="Simple Test Server")
 
 # 모든 응답은 자동으로 JSON 형식으로 반환됩니다
+
+# 로깅 설정
+LOG_FILE = "server.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler()  # 콘솔에도 출력
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # CORS 설정 - 모든 origin 허용
 app.add_middleware(
@@ -15,6 +29,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# 요청 로깅 미들웨어
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """모든 요청을 로그 파일에 기록"""
+    client_ip = request.client.host
+    method = request.method
+    url = request.url.path
+    query = str(request.query_params) if request.query_params else ""
+
+    # 요청 로깅
+    log_message = f"IP: {client_ip} | {method} {url}"
+    if query:
+        log_message += f" | Params: {query}"
+
+    logger.info(log_message)
+
+    # 요청 처리
+    response = await call_next(request)
+
+    return response
 
 # JSON 파일 경로
 DB_FILE = "database.json"
